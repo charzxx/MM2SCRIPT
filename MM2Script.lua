@@ -1,4 +1,3 @@
--- MM2 Script with ESP
 ---@diagnostic disable: undefined-global
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -28,8 +27,9 @@ local Window = Rayfield:CreateWindow({
 -- Create Main Tab
 local Tab = Window:CreateTab("Main", 4483362458)
 
---// ====== ESP Section ====== 
+--// ====== ESP Section ======
 local ESPEnabled = false
+
 local function clearHighlight(character)
     if character and character:FindFirstChild("RoleHighlight") then
         character.RoleHighlight:Destroy()
@@ -84,14 +84,12 @@ Tab:CreateToggle({
                 Content = "Sheriff (Blue) and Murderer (Red) ESP is now active.",
                 Duration = 3
             })
-            -- Start ESP loop
             RunService.RenderStepped:Connect(function()
                 if ESPEnabled then
                     highlightPlayers()
                 end
             end)
         else
-            -- Clear highlights
             for _, player in ipairs(Players:GetPlayers()) do
                 if player.Character then
                     clearHighlight(player.Character)
@@ -174,11 +172,11 @@ Tab:CreateButton({
     end
 })
 
---// ====== TP to Map Button (placeholder) ======
+--// ====== TP to Map Button ======
 Tab:CreateButton({
     Name = "TP to Map",
     Callback = function()
-        -- TODO: Add teleport logic here
+        -- TODO: Add teleport logic (like specific spawn coordinates or map center)
         Rayfield:Notify({Title = "Info", Content = "TP to Map pressed. Add coordinates/logic here.", Duration = 3})
     end
 })
