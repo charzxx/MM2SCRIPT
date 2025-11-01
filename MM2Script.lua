@@ -128,7 +128,7 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins Nearest Tween + Noclip (ignore transparency 1)
+-- Grab Coins Nearest Tween + Noclip
 MainTab:CreateButton({
     Name = "Grab Coins Nearest Tween + Noclip",
     Callback = function()
