@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 -- Load Rayfield
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
@@ -127,16 +128,26 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins (search all CoinContainers)
+-- Grab Coins (Tween + Noclip)
 MainTab:CreateButton({
-    Name = "Grab Coins All CoinContainers",
+    Name = "Grab Coins Tween + Noclip",
     Callback = function()
         local char = LocalPlayer.Character
         if not char then return end
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        -- search all descendants for CoinContainer
+        -- enable noclip
+        local ncConn
+        ncConn = RunService.Stepped:Connect(function()
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
+
+        -- search all CoinContainers
         local containers = {}
         for _, inst in ipairs(workspace:GetDescendants()) do
             if inst.Name == "CoinContainer" and inst:IsA("Model") then
@@ -144,14 +155,19 @@ MainTab:CreateButton({
             end
         end
 
-        -- loop through each container
+        -- loop through each coin with tween
         for _, container in ipairs(containers) do
             for _, coin in ipairs(container:GetChildren()) do
                 if coin:IsA("BasePart") then
-                    hrp.CFrame = coin.CFrame + Vector3.new(0,3,0) -- tp above
-                    task.wait(0.5)
+                    local tween = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {CFrame = coin.CFrame + Vector3.new(0,3,0)})
+                    tween:Play()
+                    tween.Completed:Wait()
+                    task.wait(0.2)
                 end
             end
         end
+
+        -- disable noclip
+        if ncConn then ncConn:Disconnect() end
     end
 })
