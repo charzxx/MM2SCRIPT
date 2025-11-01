@@ -128,16 +128,16 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins Smooth Fast Tween + Noclip
+-- Grab Coins Ultra Fast Tween + Noclip
 MainTab:CreateButton({
-    Name = "Grab Coins Fast Tween + Noclip",
+    Name = "Grab Coins Ultra Fast + Noclip",
     Callback = function()
     local char = LocalPlayer.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    local speed = 10 -- studs per second, change to whatever
+    local speed = 30 -- studs per second
 
     -- Enable noclip
     local ncConn
@@ -172,7 +172,7 @@ MainTab:CreateButton({
                 )
                 tween:Play()
                 tween.Completed:Wait()
-                task.wait(0.05)
+                task.wait(0.02) -- tiny pause for stability
             end
         end
     end
@@ -181,3 +181,4 @@ MainTab:CreateButton({
     if ncConn then ncConn:Disconnect() end
 end
 })
+
