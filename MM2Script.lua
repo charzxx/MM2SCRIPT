@@ -128,50 +128,55 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins (Smooth Tween + Noclip)
+-- Grab Coins Smooth 1 Stud/sec + Noclip
 MainTab:CreateButton({
-    Name = "Grab Coins Smooth Tween + Noclip",
+    Name = "Grab Coins Smooth 1 Stud/sec + Noclip",
     Callback = function()
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-        -- Enable noclip
-        local ncConn
-        ncConn = RunService.Stepped:Connect(function()
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end)
-
-        -- Find all CoinContainers
-        local containers = {}
-        for _, inst in ipairs(workspace:GetDescendants()) do
-            if inst.Name == "CoinContainer" and inst:IsA("Model") then
-                table.insert(containers, inst)
+    -- Enable noclip
+    local ncConn
+    ncConn = RunService.Stepped:Connect(function()
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
             end
         end
+    end)
 
-        -- Loop through each coin with smooth tween
-        for _, container in ipairs(containers) do
-            for _, coin in ipairs(container:GetChildren()) do
-                if coin:IsA("BasePart") then
-                    local tween = TweenService:Create(
-                        hrp,
-                        TweenInfo.new(0.7, Enum.EasingStyle.Linear), -- smooth movement
-                        {CFrame = coin.CFrame + Vector3.new(0,3,0)}
-                    )
-                    tween:Play()
-                    tween.Completed:Wait()
-                    task.wait(0.2)
-                end
-            end
+    -- Find all CoinContainers
+    local containers = {}
+    for _, inst in ipairs(workspace:GetDescendants()) do
+        if inst.Name == "CoinContainer" and inst:IsA("Model") then
+            table.insert(containers, inst)
         end
-
-        -- Disable noclip
-        if ncConn then ncConn:Disconnect() end
     end
+
+    -- Loop through each coin
+    for _, container in ipairs(containers) do
+        for _, coin in ipairs(container:GetChildren()) do
+            if coin:IsA("BasePart") then
+                -- Calculate distance & tween time based on 1 stud/sec
+                local distance = (coin.Position - hrp.Position).Magnitude
+                local tweenTime = distance / 1 -- 1 stud per second
+
+                local tween = TweenService:Create(
+                    hrp,
+                    TweenInfo.new(tweenTime, Enum.EasingStyle.Linear),
+                    {CFrame = coin.CFrame + Vector3.new(0,3,0)}
+                )
+                tween:Play()
+                tween.Completed:Wait()
+                task.wait(0.1)
+            end
+        end
+    end
+
+    -- Disable noclip
+    if ncConn then ncConn:Disconnect() end
+end
 })
+
