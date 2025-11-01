@@ -1,171 +1,200 @@
---// Brookhaven M2 Script by Charz 😎
+---@diagnostic disable: undefined-global
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
--- Load Rayfield
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+-- Load Rayfield safely
+local ok, Rayfield = pcall(function()
+	return loadstring(game:HttpGet("https://sirius.menu/rayfield", true))()
+end)
+if not ok or not Rayfield then
+	warn("Failed to load Rayfield:", Rayfield)
+	return
+end
 
 -- Create Window
 local Window = Rayfield:CreateWindow({
-    Name = "Brookhaven M2 Script by Charz",
-    LoadingTitle = "Loading...",
-    LoadingSubtitle = "By Charz 😎",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "BrookhavenConfigs",
-        FileName = "BrookhavenSettings"
-    }
+	Name = "MM2 Script by Charz",
+	LoadingTitle = "Loading MM2 Script...",
+	LoadingSubtitle = "By Charz 😎",
+	ConfigurationSaving = { Enabled = true, FolderName = "MM2Configs", FileName = "MM2Settings" }
 })
 
--- Main Tab
 local Tab = Window:CreateTab("Main", 4483362458)
 
--- Variables
+-- ESP variables
 local ESPEnabled = false
 local Connections = {}
 
--- Function to clear highlights
-local function clearHighlight(character)
-    if character and character:FindFirstChild("RoleHighlight") then
-        character.RoleHighlight:Destroy()
-    end
+-- Function to clear highlight
+local function clearHighlight(char)
+	if char and char:FindFirstChild("RoleHighlight") then
+		char.RoleHighlight:Destroy()
+	end
 end
 
--- Function to highlight players with Gun/Knife
+-- Highlight players
 local function highlightPlayers()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local char = player.Character
-            local backpack = player:FindFirstChild("Backpack")
-            local hasGun = false
-            local hasKnife = false
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= Players.LocalPlayer and player.Character then
+			local char = player.Character
+			local backpack = player:FindFirstChild("Backpack")
+			local isSheriff = false
+			local isMurderer = false
 
-            -- Check backpack
-            if backpack then
-                hasGun = backpack:FindFirstChild("Gun") ~= nil
-                hasKnife = backpack:FindFirstChild("Knife") ~= nil
-            end
+			-- Check backpack
+			if backpack then
+				isSheriff = backpack:FindFirstChild("Gun") ~= nil
+				isMurderer = backpack:FindFirstChild("Knife") ~= nil
+			end
+			-- Check character
+			isSheriff = isSheriff or (char:FindFirstChild("Gun") ~= nil)
+			isMurderer = isMurderer or (char:FindFirstChild("Knife") ~= nil)
 
-            -- Check character
-            if char then
-                hasGun = hasGun or char:FindFirstChild("Gun") ~= nil
-                hasKnife = hasKnife or char:FindFirstChild("Knife") ~= nil
-            end
+			clearHighlight(char)
 
-            -- Clear old highlight
-            clearHighlight(char)
-
-            -- Apply new highlight
-            if char and (hasGun or hasKnife) then
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "RoleHighlight"
-                highlight.Parent = char
-                highlight.Adornee = char
-                highlight.FillTransparency = 0.6
-                highlight.OutlineTransparency = 0.1
-                highlight.FillColor = hasGun and Color3.fromRGB(0,0,255) or Color3.fromRGB(255,0,0)
-            end
-        end
-    end
+			if char and (isSheriff or isMurderer) then
+				local highlight = Instance.new("Highlight")
+				highlight.Name = "RoleHighlight"
+				highlight.Parent = char
+				highlight.Adornee = char
+				highlight.FillTransparency = 0.6
+				highlight.OutlineTransparency = 0.1
+				highlight.FillColor = isSheriff and Color3.fromRGB(0, 0, 255) or Color3.fromRGB(255, 0, 0)
+			end
+		end
+	end
 end
 
--- Toggle ESP Button
+-- Toggle ESP
+local function toggleESP(state)
+	ESPEnabled = state
+	if ESPEnabled then
+		Connections.ESP = RunService.RenderStepped:Connect(function()
+			if not ESPEnabled then
+				Connections.ESP:Disconnect()
+				return
+			end
+			highlightPlayers()
+		end)
+		Rayfield:Notify({
+			Title = "ESP Enabled",
+			Content = "Sheriff (Blue) and Murderer (Red) ESP is now active.",
+			Duration = 3
+		})
+	else
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player.Character then
+				clearHighlight(player.Character)
+			end
+		end
+		if Connections.ESP then Connections.ESP:Disconnect() end
+		Rayfield:Notify({
+			Title = "ESP Disabled",
+			Content = "ESP has been turned off.",
+			Duration = 3
+		})
+	end
+end
+
+-- ESP toggle button
 Tab:CreateToggle({
-    Name = "ESP Sheriff & Murderer",
-    CurrentValue = false,
-    Callback = function(state)
-        ESPEnabled = state
-        if ESPEnabled then
-            Connections.ESP = RunService.RenderStepped:Connect(function()
-                highlightPlayers()
-            end)
-            Rayfield:Notify({
-                Title = "ESP Enabled",
-                Content = "Blue = Gun / Red = Knife",
-                Duration = 3
-            })
-        else
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Character then
-                    clearHighlight(player.Character)
-                end
-            end
-            if Connections.ESP then Connections.ESP:Disconnect() end
-            Rayfield:Notify({
-                Title = "ESP Disabled",
-                Content = "ESP turned off",
-                Duration = 3
-            })
-        end
-    end
+	Name = "ESP Sheriff & Murderer",
+	CurrentValue = false,
+	Callback = function(state)
+		toggleESP(state)
+	end
 })
 
--- Button: Grab Gun from GunDrop
+-- Handle respawns
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		if ESPEnabled then highlightPlayers() end
+		char:WaitForChild("Humanoid").Died:Connect(function()
+			clearHighlight(char)
+		end)
+	end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	if player.Character then clearHighlight(player.Character) end
+end)
+
+-- Steal Gun/Knife button
 Tab:CreateButton({
-    Name = "Grab Gun",
-    Callback = function()
-        local gunDrop = Workspace:FindFirstChild("GunDrop")
-        if gunDrop and gunDrop:IsA("BasePart") then
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                hrp.CFrame = gunDrop.CFrame + Vector3.new(0, 3, 0)
-                Rayfield:Notify({Title="Success", Content="You grabbed the Gun!", Duration=3})
-            end
-        else
-            Rayfield:Notify({Title="Error", Content="No GunDrop found!", Duration=3})
-        end
-    end
+	Name = "Steal Gun/Knife",
+	Callback = function()
+		local LocalPlayer = Players.LocalPlayer
+		local backpack = LocalPlayer:WaitForChild("Backpack", 5)
+		if not backpack then
+			Rayfield:Notify({
+				Title = "Error",
+				Content = "Could not find your Backpack!",
+				Duration = 3
+			})
+			return
+		end
+
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character then
+				local char = player.Character
+				local otherBackpack = player:FindFirstChild("Backpack")
+
+				-- Gun
+				local gun = char:FindFirstChild("Gun") or (otherBackpack and otherBackpack:FindFirstChild("Gun"))
+				if gun then
+					local success, clone = pcall(function() return gun:Clone() end)
+					if success and clone then
+						clone.Parent = backpack
+						Rayfield:Notify({ Title = "Success", Content = "Stole Gun from "..player.Name, Duration = 3 })
+					else
+						Rayfield:Notify({ Title = "Error", Content = "Failed to clone Gun from "..player.Name, Duration = 3 })
+					end
+				end
+
+				-- Knife
+				local knife = char:FindFirstChild("Knife") or (otherBackpack and otherBackpack:FindFirstChild("Knife"))
+				if knife then
+					local success, clone = pcall(function() return knife:Clone() end)
+					if success and clone then
+						clone.Parent = backpack
+						Rayfield:Notify({ Title = "Success", Content = "Stole Knife from "..player.Name, Duration = 3 })
+					else
+						Rayfield:Notify({ Title = "Error", Content = "Failed to clone Knife from "..player.Name, Duration = 3 })
+					end
+				end
+			end
+		end
+	end
 })
 
--- Button: Steal Gun
+-- Grab Gun button
 Tab:CreateButton({
-    Name = "Steal Gun",
-    Callback = function()
-        local backpack = LocalPlayer:WaitForChild("Backpack",5)
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                local gun = (player.Backpack and player.Backpack:FindFirstChild("Gun")) or (player.Character and player.Character:FindFirstChild("Gun"))
-                if gun then
-                    gun.Parent = backpack
-                    Rayfield:Notify({Title="Success", Content="Stole Gun from "..player.Name, Duration=3})
-                end
-            end
-        end
-    end
+	Name = "Grab Gun",
+	Callback = function()
+		local LocalPlayer = Players.LocalPlayer
+		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		-- Search for GunDrop in workspace
+		local gunDrop = Workspace:FindFirstChild("GunDrop")
+		if gunDrop and gunDrop:IsA("BasePart") then
+			hrp.CFrame = gunDrop.CFrame + Vector3.new(0, 3, 0)
+			Rayfield:Notify({Title="Success", Content="Moved to GunDrop!", Duration=3})
+		else
+			Rayfield:Notify({Title="Error", Content="No GunDrop found!", Duration=3})
+		end
+	end
 })
 
--- Button: Steal Knife
-Tab:CreateButton({
-    Name = "Steal Knife",
-    Callback = function()
-        local backpack = LocalPlayer:WaitForChild("Backpack",5)
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                local knife = (player.Backpack and player.Backpack:FindFirstChild("Knife")) or (player.Character and player.Character:FindFirstChild("Knife"))
-                if knife then
-                    knife.Parent = backpack
-                    Rayfield:Notify({Title="Success", Content="Stole Knife from "..player.Name, Duration=3})
-                end
-            end
-        end
-    end
-})
-
--- TextBox: Bring Player
-Tab:CreateTextBox({
-    Name = "Bring Player",
-    PlaceholderText = "Enter player name",
-    TextDisappear = true,
-    Callback = function(playerName)
-        local target = Players:FindFirstChild(playerName)
-        if target and target.Character then
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                target.Character:SetPrimaryPartCFrame(hrp.CFrame + Vector3.new(0,0,3))
-                Rayfield:Notify({Title="Success", Content=playerName.." brought to you!", Duration=3})
-            end
-        end
-    end
-})
+-- Init highlights for existing players
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= Players.LocalPlayer and player.Character then
+		player.CharacterAdded:Connect(function(char)
+			if ESPEnabled then highlightPlayers() end
+			char:WaitForChild("Humanoid").Died:Connect(function()
+				clearHighlight(char)
+			end)
+		end)
+	end
+end
