@@ -128,16 +128,16 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins (Tween + Noclip)
+-- Grab Coins (Smooth Tween + Noclip)
 MainTab:CreateButton({
-    Name = "Grab Coins Tween + Noclip",
+    Name = "Grab Coins Smooth Tween + Noclip",
     Callback = function()
         local char = LocalPlayer.Character
         if not char then return end
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        -- enable noclip
+        -- Enable noclip
         local ncConn
         ncConn = RunService.Stepped:Connect(function()
             for _, part in ipairs(char:GetDescendants()) do
@@ -147,7 +147,7 @@ MainTab:CreateButton({
             end
         end)
 
-        -- search all CoinContainers
+        -- Find all CoinContainers
         local containers = {}
         for _, inst in ipairs(workspace:GetDescendants()) do
             if inst.Name == "CoinContainer" and inst:IsA("Model") then
@@ -155,11 +155,15 @@ MainTab:CreateButton({
             end
         end
 
-        -- loop through each coin with tween
+        -- Loop through each coin with smooth tween
         for _, container in ipairs(containers) do
             for _, coin in ipairs(container:GetChildren()) do
                 if coin:IsA("BasePart") then
-                    local tween = TweenService:Create(hrp, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {CFrame = coin.CFrame + Vector3.new(0,3,0)})
+                    local tween = TweenService:Create(
+                        hrp,
+                        TweenInfo.new(0.7, Enum.EasingStyle.Linear), -- smooth movement
+                        {CFrame = coin.CFrame + Vector3.new(0,3,0)}
+                    )
                     tween:Play()
                     tween.Completed:Wait()
                     task.wait(0.2)
@@ -167,7 +171,7 @@ MainTab:CreateButton({
             end
         end
 
-        -- disable noclip
+        -- Disable noclip
         if ncConn then ncConn:Disconnect() end
     end
 })
