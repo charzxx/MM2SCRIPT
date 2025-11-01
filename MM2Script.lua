@@ -1,7 +1,6 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Load Rayfield
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
@@ -12,23 +11,8 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("Main", 4483362458)
 
--- // ESP Function
-local function highlightPlayer(plr)
-    if plr == LocalPlayer then return end
-
-    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-        if not plr.Character:FindFirstChild("CharzHighlight") then
-            local h = Instance.new("Highlight")
-            h.Name = "CharzHighlight"
-            h.FillTransparency = 0.5
-            h.FillColor = Color3.fromRGB(255, 0, 0)
-            h.OutlineColor = Color3.fromRGB(255, 255, 255)
-            h.Parent = plr.Character
-        end
-    end
-end
-
-local function removeHighlights()
+-- remove old ESPs
+local function clearESP()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr.Character then
             local h = plr.Character:FindFirstChild("CharzHighlight")
@@ -37,25 +21,52 @@ local function removeHighlights()
     end
 end
 
--- // Button: ESP Murder / Sheriff (tools named "Knife" or "Gun")
+-- add highlight w/ color
+local function setESP(plr, color)
+    if plr == LocalPlayer then return end
+    if not plr.Character then return end
+
+    local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    -- remove old one if exists
+    local old = plr.Character:FindFirstChild("CharzHighlight")
+    if old then old:Destroy() end
+
+    local h = Instance.new("Highlight")
+    h.Name = "CharzHighlight"
+    h.FillTransparency = 0.4
+    h.FillColor = color
+    h.OutlineColor = Color3.fromRGB(255,255,255)
+    h.Parent = plr.Character
+end
+
+-- find tool in backpack/character
+local function hasTool(plr, toolName)
+    if plr.Backpack and plr.Backpack:FindFirstChild(toolName) then return true end
+    if plr.Character and plr.Character:FindFirstChild(toolName) then return true end
+    return false
+end
+
+-- ESP button
 MainTab:CreateButton({
-    Name = "ESP Knife / Gun Players",
+    Name = "ESP Murderer (Red) / Sheriff (Blue)",
     Callback = function()
-        removeHighlights()
+        clearESP()
 
         for _, plr in ipairs(Players:GetPlayers()) do
-            if plr.Backpack:FindFirstChild("Knife") or plr.Backpack:FindFirstChild("Gun") then
-                highlightPlayer(plr)
-            elseif plr.Character then
-                if plr.Character:FindFirstChild("Knife") or plr.Character:FindFirstChild("Gun") then
-                    highlightPlayer(plr)
+            if plr ~= LocalPlayer then
+                if hasTool(plr, "Gun") then
+                    setESP(plr, Color3.fromRGB(0, 0, 255)) -- BLUE sheriff
+                elseif hasTool(plr, "Knife") then
+                    setESP(plr, Color3.fromRGB(255, 0, 0)) -- RED murderer
                 end
             end
         end
     end
 })
 
--- // Button: Grab GunDrop (teleport to it)
+-- GRAB GUN (Teleport to GunDrop)
 MainTab:CreateButton({
     Name = "Grab Gun",
     Callback = function()
@@ -65,12 +76,13 @@ MainTab:CreateButton({
         local root = char:FindFirstChild("HumanoidRootPart")
         if not root then return end
         
-        local gun = workspace:FindFirstChild("GunDrop", true) -- search whole workspace
+        -- find GunDrop anywhere
+        local gun = workspace:FindFirstChild("GunDrop", true)
 
         if gun then
-            root.CFrame = gun.CFrame + Vector3.new(0, 3, 0) -- TP slightly above it
+            root.CFrame = gun.CFrame + Vector3.new(0, 3, 0)
         else
-            warn("No GunDrop found")
+            warn("GunDrop not found")
         end
     end
 })
