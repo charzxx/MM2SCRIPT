@@ -128,57 +128,77 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins Ultra Fast Tween + Noclip
+-- Grab Coins Nearest Tween + Noclip
 MainTab:CreateButton({
-    Name = "Grab Coins Ultra Fast + Noclip",
+    Name = "Grab Coins Nearest Tween + Noclip",
     Callback = function()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
 
-    local speed = 30 -- studs per second
+        local speed = 30 -- studs/sec
 
-    -- Enable noclip
-    local ncConn
-    ncConn = RunService.Stepped:Connect(function()
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+        -- Enable noclip
+        local ncConn
+        ncConn = RunService.Stepped:Connect(function()
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
+
+        -- Gather all coins
+        local coins = {}
+        for _, inst in ipairs(workspace:GetDescendants()) do
+            if inst.Name == "CoinContainer" and inst:IsA("Model") then
+                for _, coin in ipairs(inst:GetChildren()) do
+                    if coin:IsA("BasePart") then
+                        table.insert(coins, coin)
+                    end
+                end
             end
         end
-    end)
 
-    -- Find all CoinContainers
-    local containers = {}
-    for _, inst in ipairs(workspace:GetDescendants()) do
-        if inst.Name == "CoinContainer" and inst:IsA("Model") then
-            table.insert(containers, inst)
-        end
-    end
+        -- Loop until all coins are collected
+        while #coins > 0 do
+            -- find nearest coin
+            local nearest, nearestDist = nil, math.huge
+            for i, coin in ipairs(coins) do
+                local dist = (coin.Position - hrp.Position).Magnitude
+                if dist < nearestDist then
+                    nearestDist = dist
+                    nearest = coin
+                end
+            end
 
-    -- Loop through each coin
-    for _, container in ipairs(containers) do
-        for _, coin in ipairs(container:GetChildren()) do
-            if coin:IsA("BasePart") then
-                -- Calculate distance & tween time based on speed
-                local distance = (coin.Position - hrp.Position).Magnitude
+            if nearest then
+                local distance = (nearest.Position - hrp.Position).Magnitude
                 local tweenTime = distance / speed
 
                 local tween = TweenService:Create(
                     hrp,
                     TweenInfo.new(tweenTime, Enum.EasingStyle.Linear),
-                    {CFrame = coin.CFrame + Vector3.new(0,3,0)}
+                    {CFrame = nearest.CFrame + Vector3.new(0,3,0)}
                 )
                 tween:Play()
                 tween.Completed:Wait()
-                task.wait(0.02) -- tiny pause for stability
+                task.wait(0.02)
+
+                -- remove the coin from the list
+                for i, c in ipairs(coins) do
+                    if c == nearest then
+                        table.remove(coins, i)
+                        break
+                    end
+                end
+            else
+                break
             end
         end
+
+        -- Disable noclip
+        if ncConn then ncConn:Disconnect() end
     end
-
-    -- Disable noclip
-    if ncConn then ncConn:Disconnect() end
-end
 })
-
