@@ -127,31 +127,31 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Candy Loop
+-- Grab Coins (search all CoinContainers)
 MainTab:CreateButton({
-    Name = "Grab Candy Loop",
+    Name = "Grab Coins All CoinContainers",
     Callback = function()
-        local candyList = {}
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
 
-        -- All candy in workspace
-        for _, child in ipairs(workspace:GetDescendants()) do
-            if child.Name:lower():find("candy") and child:IsA("BasePart") then
-                table.insert(candyList, child)
+        -- search all descendants for CoinContainer
+        local containers = {}
+        for _, inst in ipairs(workspace:GetDescendants()) do
+            if inst.Name == "CoinContainer" and inst:IsA("Model") then
+                table.insert(containers, inst)
             end
         end
 
-        -- Specific candy you gave
-        local ok, specificCandy = pcall(function()
-            return workspace.Lobby.Map:GetChildren()[224].Model:GetChildren()[6]
-        end)
-        if ok and specificCandy and specificCandy:IsA("BasePart") then
-            table.insert(candyList, specificCandy)
-        end
-
-        -- Loop teleport
-        for _, candy in ipairs(candyList) do
-            tpToPart(candy)
-            task.wait(0.8)
+        -- loop through each container
+        for _, container in ipairs(containers) do
+            for _, coin in ipairs(container:GetChildren()) do
+                if coin:IsA("BasePart") then
+                    hrp.CFrame = coin.CFrame + Vector3.new(0,3,0) -- tp above
+                    task.wait(0.5)
+                end
+            end
         end
     end
 })
