@@ -161,7 +161,7 @@ MainTab:CreateButton({
             if coin:IsA("BasePart") then
                 -- Calculate distance & tween time based on 1 stud/sec
                 local distance = (coin.Position - hrp.Position).Magnitude
-                local tweenTime = distance / 1 -- 1 stud per second
+                local tweenTime = distance / 10 -- 1 stud per second
 
                 local tween = TweenService:Create(
                     hrp,
@@ -179,4 +179,5 @@ MainTab:CreateButton({
     if ncConn then ncConn:Disconnect() end
 end
 })
+
 
