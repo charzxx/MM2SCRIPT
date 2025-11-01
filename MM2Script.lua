@@ -1,54 +1,180 @@
-local player = game.Players.LocalPlayer
-local plot = workspace:WaitForChild("Plots"):WaitForChild("Plot3")
-local rep = game:GetService("ReplicatedStorage")
-local BlocksFolder = rep:WaitForChild("Blocks"):WaitForChild("Blocks")
+---@diagnostic disable: undefined-global
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
--- Your full block list
-local AllBlocks = {
-    BlocksFolder["Birch Wood"],
-    BlocksFolder["Birch Wood Planks"],
-    BlocksFolder.Brick,
-    BlocksFolder["Neon Purple"],
-    BlocksFolder.Water,
-    -- add the rest...
-}
-
--- Terrain settings
-local basePos = plot:GetBoundingBox().Position
-local terrainWidth = 10
-local terrainDepth = 10
-local maxHeight = 3
-local spacing = 4
-
-for x = 0, terrainWidth-1 do
-    for z = 0, terrainDepth-1 do
-        local height = math.random(1, maxHeight)
-        for y = 0, height-1 do
-            local model = AllBlocks[math.random(1,#AllBlocks)]:Clone()
-
-            -- Make sure model has PrimaryPart
-            if not model.PrimaryPart then
-                local part = model:FindFirstChildWhichIsA("BasePart")
-                if part then
-                    model.PrimaryPart = part
-                else
-                    continue  -- skip if no BasePart
-                end
-            end
-
-            -- Position the model
-            model:SetPrimaryPartCFrame(
-                CFrame.new(
-                    basePos.X + x*spacing,
-                    basePos.Y + y*spacing,
-                    basePos.Z + z*spacing
-                )
-            )
-
-            model.Parent = workspace
-            task.wait(0.01)
-        end
-    end
+-- Load Rayfield safely
+local ok, Rayfield = pcall(function()
+	return loadstring(game:HttpGet("https://sirius.menu/rayfield", true))()
+end)
+if not ok or not Rayfield then
+	warn("Failed to load Rayfield:", Rayfield)
+	return
 end
 
-print("✅ Terrain built locally with all Models!")
+-- Create Window
+local Window = Rayfield:CreateWindow({
+	Name = "MM2 Script by Charz",
+	LoadingTitle = "Loading MM2 Script...",
+	LoadingSubtitle = "By Charz 😎",
+	ConfigurationSaving = { Enabled = true, FolderName = "MM2Configs", FileName = "MM2Settings" }
+})
+
+local Tab = Window:CreateTab("Main", 4483362458)
+
+-- ESP variables
+local ESPEnabled = false
+local Connections = {}
+
+-- Function to clear highlight
+local function clearHighlight(char)
+	if char and char:FindFirstChild("RoleHighlight") then
+		char.RoleHighlight:Destroy()
+	end
+end
+
+-- Highlight players
+local function highlightPlayers()
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= Players.LocalPlayer and player.Character then
+			local char = player.Character
+			local backpack = player:FindFirstChild("Backpack")
+			local isSheriff = false
+			local isMurderer = false
+
+			-- Check backpack
+			if backpack then
+				isSheriff = backpack:FindFirstChild("Gun") ~= nil
+				isMurderer = backpack:FindFirstChild("Knife") ~= nil
+			end
+			-- Check character
+			isSheriff = isSheriff or (char:FindFirstChild("Gun") ~= nil)
+			isMurderer = isMurderer or (char:FindFirstChild("Knife") ~= nil)
+
+			clearHighlight(char)
+
+			if char and (isSheriff or isMurderer) then
+				local highlight = Instance.new("Highlight")
+				highlight.Name = "RoleHighlight"
+				highlight.Parent = char
+				highlight.Adornee = char
+				highlight.FillTransparency = 0.6
+				highlight.OutlineTransparency = 0.1
+				highlight.FillColor = isSheriff and Color3.fromRGB(0, 0, 255) or Color3.fromRGB(255, 0, 0)
+			end
+		end
+	end
+end
+
+-- Toggle ESP
+local function toggleESP(state)
+	ESPEnabled = state
+	if ESPEnabled then
+		Connections.ESP = RunService.RenderStepped:Connect(function()
+			if not ESPEnabled then
+				Connections.ESP:Disconnect()
+				return
+			end
+			highlightPlayers()
+		end)
+		Rayfield:Notify({
+			Title = "ESP Enabled",
+			Content = "Sheriff (Blue) and Murderer (Red) ESP is now active.",
+			Duration = 3
+		})
+	else
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player.Character then
+				clearHighlight(player.Character)
+			end
+		end
+		if Connections.ESP then Connections.ESP:Disconnect() end
+		Rayfield:Notify({
+			Title = "ESP Disabled",
+			Content = "ESP has been turned off.",
+			Duration = 3
+		})
+	end
+end
+
+-- ESP toggle button
+Tab:CreateToggle({
+	Name = "ESP Sheriff & Murderer",
+	CurrentValue = false,
+	Callback = function(state)
+		toggleESP(state)
+	end
+})
+
+-- Handle respawns
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(char)
+		if ESPEnabled then highlightPlayers() end
+		char:WaitForChild("Humanoid").Died:Connect(function()
+			clearHighlight(char)
+		end)
+	end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	if player.Character then clearHighlight(player.Character) end
+end)
+
+-- Steal Gun/Knife button
+Tab:CreateButton({
+	Name = "Steal Gun/Knife",
+	Callback = function()
+		local LocalPlayer = Players.LocalPlayer
+		local backpack = LocalPlayer:WaitForChild("Backpack", 5)
+		if not backpack then
+			Rayfield:Notify({
+				Title = "Error",
+				Content = "Could not find your Backpack!",
+				Duration = 3
+			})
+			return
+		end
+
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character then
+				local char = player.Character
+				local otherBackpack = player:FindFirstChild("Backpack")
+
+				-- Gun
+				local gun = char:FindFirstChild("Gun") or (otherBackpack and otherBackpack:FindFirstChild("Gun"))
+				if gun then
+					local success, clone = pcall(function() return gun:Clone() end)
+					if success and clone then
+						clone.Parent = backpack
+						Rayfield:Notify({ Title = "Success", Content = "Stole Gun from "..player.Name, Duration = 3 })
+					else
+						Rayfield:Notify({ Title = "Error", Content = "Failed to clone Gun from "..player.Name, Duration = 3 })
+					end
+				end
+
+				-- Knife
+				local knife = char:FindFirstChild("Knife") or (otherBackpack and otherBackpack:FindFirstChild("Knife"))
+				if knife then
+					local success, clone = pcall(function() return knife:Clone() end)
+					if success and clone then
+						clone.Parent = backpack
+						Rayfield:Notify({ Title = "Success", Content = "Stole Knife from "..player.Name, Duration = 3 })
+					else
+						Rayfield:Notify({ Title = "Error", Content = "Failed to clone Knife from "..player.Name, Duration = 3 })
+					end
+				end
+			end
+		end
+	end
+})
+
+-- Init highlights for existing players
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= Players.LocalPlayer and player.Character then
+		player.CharacterAdded:Connect(function(char)
+			if ESPEnabled then highlightPlayers() end
+			char:WaitForChild("Humanoid").Died:Connect(function()
+				clearHighlight(char)
+			end)
+		end)
+	end
+end
