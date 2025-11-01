@@ -128,7 +128,7 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins Nearest Tween + Noclip
+-- Grab Coins Nearest Tween + Noclip (ignore transparency 1)
 MainTab:CreateButton({
     Name = "Grab Coins Nearest Tween + Noclip",
     Callback = function()
@@ -149,12 +149,12 @@ MainTab:CreateButton({
             end
         end)
 
-        -- Gather all coins
+        -- Gather all visible coins
         local coins = {}
         for _, inst in ipairs(workspace:GetDescendants()) do
             if inst.Name == "CoinContainer" and inst:IsA("Model") then
                 for _, coin in ipairs(inst:GetChildren()) do
-                    if coin:IsA("BasePart") then
+                    if coin:IsA("BasePart") and coin.Transparency < 1 then
                         table.insert(coins, coin)
                     end
                 end
