@@ -128,14 +128,16 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins Smooth 1 Stud/sec + Noclip
+-- Grab Coins Smooth Fast Tween + Noclip
 MainTab:CreateButton({
-    Name = "Grab Coins Smooth 1 Stud/sec + Noclip",
+    Name = "Grab Coins Fast Tween + Noclip",
     Callback = function()
     local char = LocalPlayer.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
+
+    local speed = 10 -- studs per second, change to whatever
 
     -- Enable noclip
     local ncConn
@@ -159,9 +161,9 @@ MainTab:CreateButton({
     for _, container in ipairs(containers) do
         for _, coin in ipairs(container:GetChildren()) do
             if coin:IsA("BasePart") then
-                -- Calculate distance & tween time based on 1 stud/sec
+                -- Calculate distance & tween time based on speed
                 local distance = (coin.Position - hrp.Position).Magnitude
-                local tweenTime = distance / 10 -- 1 stud per second
+                local tweenTime = distance / speed
 
                 local tween = TweenService:Create(
                     hrp,
@@ -170,7 +172,7 @@ MainTab:CreateButton({
                 )
                 tween:Play()
                 tween.Completed:Wait()
-                task.wait(0.1)
+                task.wait(0.05)
             end
         end
     end
@@ -179,5 +181,3 @@ MainTab:CreateButton({
     if ncConn then ncConn:Disconnect() end
 end
 })
-
-
