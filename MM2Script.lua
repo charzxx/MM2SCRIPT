@@ -137,7 +137,7 @@ MainTab:CreateButton({
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        local speed = 30 -- studs/sec
+        local speed = 60 -- studs/sec
 
         -- Enable noclip
         local ncConn
@@ -202,3 +202,4 @@ MainTab:CreateButton({
         if ncConn then ncConn:Disconnect() end
     end
 })
+
