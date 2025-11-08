@@ -128,80 +128,77 @@ MainTab:CreateButton({
     end
 })
 
--- Grab Coins Button (Dynamic)
+-- Grab Coins Nearest Tween + Noclip
 MainTab:CreateButton({
-    Name = "Grab All Coins (Dynamic)",
+    Name = "Grab Coins Nearest Tween + Noclip",
     Callback = function()
         local char = LocalPlayer.Character
         if not char then return end
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        local speed = 60 -- studs/sec
+        local speed = 30 -- studs/sec
 
         -- Enable noclip
         local ncConn
         ncConn = RunService.Stepped:Connect(function()
-            if char then
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
                 end
             end
         end)
 
-        -- Grab coins dynamically until none left
-        task.spawn(function()
-            while task.wait(0.1) do
-                local coins = {}
-
-                -- Find all visible coins
-                for _, inst in ipairs(workspace:GetDescendants()) do
-                    if inst.Name == "CoinContainer" and inst:IsA("Model") then
-                        for _, coin in ipairs(inst:GetChildren()) do
-                            if coin:IsA("BasePart") and coin.Transparency < 1 then
-                                table.insert(coins, coin)
-                            end
-                        end
+        -- Gather all visible coins
+        local coins = {}
+        for _, inst in ipairs(workspace:GetDescendants()) do
+            if inst.Name == "CoinContainer" and inst:IsA("Model") then
+                for _, coin in ipairs(inst:GetChildren()) do
+                    if coin:IsA("BasePart") and coin.Transparency < 1 then
+                        table.insert(coins, coin)
                     end
                 end
+            end
+        end
 
-                if #coins == 0 then
-                    break
-                end
-
-                -- Find nearest coin
-                local nearest, nearestDist = nil, math.huge
-                for _, coin in ipairs(coins) do
-                    local dist = (coin.Position - hrp.Position).Magnitude
-                    if dist < nearestDist then
-                        nearestDist = dist
-                        nearest = coin
-                    end
-                end
-
-                if nearest then
-                    local distance = (nearest.Position - hrp.Position).Magnitude
-                    local tweenTime = distance / speed
-                    local tween = TweenService:Create(
-                        hrp,
-                        TweenInfo.new(tweenTime, Enum.EasingStyle.Linear),
-                        {CFrame = nearest.CFrame + Vector3.new(0,3,0)}
-                    )
-                    tween:Play()
-                    tween.Completed:Wait()
-                else
-                    break
+        -- Loop until all coins are collected
+        while #coins > 0 do
+            -- find nearest coin
+            local nearest, nearestDist = nil, math.huge
+            for i, coin in ipairs(coins) do
+                local dist = (coin.Position - hrp.Position).Magnitude
+                if dist < nearestDist then
+                    nearestDist = dist
+                    nearest = coin
                 end
             end
 
-            if ncConn then ncConn:Disconnect() end
-            Rayfield:Notify({
-                Title = "Coin Grabber",
-                Content = "All coins collected 🪙🔥",
-                Duration = 3
-            })
-        end)
+            if nearest then
+                local distance = (nearest.Position - hrp.Position).Magnitude
+                local tweenTime = distance / speed
+
+                local tween = TweenService:Create(
+                    hrp,
+                    TweenInfo.new(tweenTime, Enum.EasingStyle.Linear),
+                    {CFrame = nearest.CFrame + Vector3.new(0,3,0)}
+                )
+                tween:Play()
+                tween.Completed:Wait()
+                task.wait(0.02)
+
+                -- remove the coin from the list
+                for i, c in ipairs(coins) do
+                    if c == nearest then
+                        table.remove(coins, i)
+                        break
+                    end
+                end
+            else
+                break
+            end
+        end
+
+        -- Disable noclip
+        if ncConn then ncConn:Disconnect() end
     end
 })
