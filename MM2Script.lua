@@ -128,7 +128,7 @@ MainTab:CreateButton({
     end
 })
 
--- Grab All Coins (Dynamic)
+-- Grab Coins Button (Dynamic)
 MainTab:CreateButton({
     Name = "Grab All Coins (Dynamic)",
     Callback = function()
@@ -151,57 +151,57 @@ MainTab:CreateButton({
             end
         end)
 
-        -- Loop until no more coins
-        while task.wait(0.1) do
-            local coins = {}
+        -- Grab coins dynamically until none left
+        task.spawn(function()
+            while task.wait(0.1) do
+                local coins = {}
 
-            -- find all visible coins dynamically
-            for _, inst in ipairs(workspace:GetDescendants()) do
-                if inst.Name == "CoinContainer" and inst:IsA("Model") then
-                    for _, coin in ipairs(inst:GetChildren()) do
-                        if coin:IsA("BasePart") and coin.Transparency < 1 then
-                            table.insert(coins, coin)
+                -- Find all visible coins
+                for _, inst in ipairs(workspace:GetDescendants()) do
+                    if inst.Name == "CoinContainer" and inst:IsA("Model") then
+                        for _, coin in ipairs(inst:GetChildren()) do
+                            if coin:IsA("BasePart") and coin.Transparency < 1 then
+                                table.insert(coins, coin)
+                            end
                         end
                     end
                 end
-            end
 
-            if #coins == 0 then
-                break
-            end
+                if #coins == 0 then
+                    break
+                end
 
-            -- find nearest coin
-            local nearest, nearestDist = nil, math.huge
-            for _, coin in ipairs(coins) do
-                local dist = (coin.Position - hrp.Position).Magnitude
-                if dist < nearestDist then
-                    nearestDist = dist
-                    nearest = coin
+                -- Find nearest coin
+                local nearest, nearestDist = nil, math.huge
+                for _, coin in ipairs(coins) do
+                    local dist = (coin.Position - hrp.Position).Magnitude
+                    if dist < nearestDist then
+                        nearestDist = dist
+                        nearest = coin
+                    end
+                end
+
+                if nearest then
+                    local distance = (nearest.Position - hrp.Position).Magnitude
+                    local tweenTime = distance / speed
+                    local tween = TweenService:Create(
+                        hrp,
+                        TweenInfo.new(tweenTime, Enum.EasingStyle.Linear),
+                        {CFrame = nearest.CFrame + Vector3.new(0,3,0)}
+                    )
+                    tween:Play()
+                    tween.Completed:Wait()
+                else
+                    break
                 end
             end
 
-            if nearest then
-                local distance = (nearest.Position - hrp.Position).Magnitude
-                local tweenTime = distance / speed
-                local tween = TweenService:Create(
-                    hrp,
-                    TweenInfo.new(tweenTime, Enum.EasingStyle.Linear),
-                    {CFrame = nearest.CFrame + Vector3.new(0,3,0)}
-                )
-                tween:Play()
-                tween.Completed:Wait()
-            else
-                break
-            end
-        end
-
-        -- disable noclip
-        if ncConn then ncConn:Disconnect() end
-
-        Rayfield:Notify({
-            Title = "Coin Grabber",
-            Content = "All coins collected 🪙🔥",
-            Duration = 3
-        })
+            if ncConn then ncConn:Disconnect() end
+            Rayfield:Notify({
+                Title = "Coin Grabber",
+                Content = "All coins collected 🪙🔥",
+                Duration = 3
+            })
+        end)
     end
 })
