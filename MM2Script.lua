@@ -203,3 +203,16 @@ MainTab:CreateButton({
     end
 })
 
+-- Make Everything 0.6 Transparency
+MainTab:CreateButton({
+    Name = "Set Everything To 0.6 Transparency",
+    Callback = function()
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                obj.Transparency = 0.6
+            elseif obj:IsA("Decal") or obj:IsA("Texture") then
+                obj.Transparency = 0.6
+            end
+        end
+    end
+})
