@@ -203,16 +203,24 @@ MainTab:CreateButton({
     end
 })
 
--- Make Everything 0.6 Transparency
-MainTab:CreateButton({
-    Name = "Set Everything To 0.6 Transparency",
-    Callback = function()
+-- Transparency Slider
+MainTab:CreateSlider({
+    Name = "Map Transparency",
+    Range = {0, 1},
+    Increment = 0.05,
+    Suffix = "",
+    CurrentValue = 0,
+    Callback = function(Value)
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("BasePart") then
-                obj.Transparency = 0.6
+                -- Ignore your own character
+                if not obj:IsDescendantOf(LocalPlayer.Character) then
+                    obj.Transparency = Value
+                end
             elseif obj:IsA("Decal") or obj:IsA("Texture") then
-                obj.Transparency = 0.6
+                obj.Transparency = Value
             end
         end
     end
 })
+
